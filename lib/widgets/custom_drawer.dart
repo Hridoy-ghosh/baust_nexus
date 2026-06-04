@@ -55,7 +55,10 @@ class CustomDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.person, color: AppColors.primary),
             title: Text('Profile', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/profile');
+            },
           ),
           ListTile(
             leading: const Icon(Icons.settings, color: AppColors.primary),

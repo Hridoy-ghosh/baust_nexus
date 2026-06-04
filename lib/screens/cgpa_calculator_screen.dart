@@ -10,8 +10,8 @@ class CGPACalculatorScreen extends StatefulWidget {
 }
 
 class _CGPACalculatorScreenState extends State<CGPACalculatorScreen> {
-  List<Map<String, dynamic>> _courses = [];
-  double _cgpa = 0.0;
+  List<Map<String, dynamic>> _semesters = [];
+  double _overallCgpa = 0.0;
   int _totalCredits = 0;
   
   final List<Map<String, String>> _grades = [
@@ -27,20 +27,38 @@ class _CGPACalculatorScreenState extends State<CGPACalculatorScreen> {
     {'grade': 'F', 'point': '0.00'},
   ];
 
-  void _addCourse() => setState(() => _courses.add({'name': '', 'credit': 0, 'grade': 'A+', 'point': 4.0}));
+  void _addSemester() => setState(() => _semesters.add({'name': 'Semester ${_semesters.length + 1}', 'courses': [], 'cgpa': 0.0, 'credits': 0}));
   
-  void _calculate() {
+  void _addCourse(int semIndex) => setState(() => _semesters[semIndex]['courses'].add({'name': '', 'credit': 0, 'grade': 'A+', 'point': 4.0}));
+  
+  void _calculateSemester(int semIndex) {
+    var sem = _semesters[semIndex];
     double points = 0; 
     int credits = 0;
-    for (var c in _courses) {
+    for (var c in sem['courses']) {
       if ((c['credit'] as int) > 0) { 
         points += (c['point'] as double) * (c['credit'] as int); 
         credits += (c['credit'] as int); 
       }
     }
     setState(() { 
-      _cgpa = credits > 0 ? points / credits : 0; 
-      _totalCredits = credits; 
+      sem['cgpa'] = credits > 0 ? points / credits : 0; 
+      sem['credits'] = credits; 
+    });
+  }
+  
+  void _calculateOverall() {
+    double totalPoints = 0; 
+    int totalCredits = 0;
+    for (var sem in _semesters) {
+      if ((sem['credits'] as int) > 0) {
+        totalPoints += (sem['cgpa'] as double) * (sem['credits'] as int);
+        totalCredits += (sem['credits'] as int);
+      }
+    }
+    setState(() { 
+      _overallCgpa = totalCredits > 0 ? totalPoints / totalCredits : 0; 
+      _totalCredits = totalCredits; 
     });
   }
 
@@ -51,116 +69,74 @@ class _CGPACalculatorScreenState extends State<CGPACalculatorScreen> {
       appBar: AppBar(
         title: Text('CGPA Calculator', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: () => setState(() { _courses = []; _cgpa = 0; _totalCredits = 0; })),
-          IconButton(icon: const Icon(Icons.add), onPressed: _addCourse),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: () => setState(() { _semesters = []; _overallCgpa = 0; _totalCredits = 0; })),
+          IconButton(icon: const Icon(Icons.add), onPressed: _addSemester),
         ],
       ),
       body: Column(children: [
-        if (_cgpa > 0)
+        if (_overallCgpa > 0)
           Container(
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _cgpa >= 3.0 ? [AppColors.success, Colors.green.shade400] : [AppColors.warning, Colors.orange.shade400],
+                colors: _overallCgpa >= 3.0 ? [AppColors.success, Colors.green.shade400] : [AppColors.warning, Colors.orange.shade400],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-              _result('CGPA', _cgpa.toStringAsFixed(2)),
-              _result('Credits', _totalCredits.toString()),
-              _result('Grade', _getGrade(_cgpa)),
+              _result('Overall CGPA', _overallCgpa.toStringAsFixed(2)),
+              _result('Total Credits', _totalCredits.toString()),
+              _result('Grade', _getGrade(_overallCgpa)),
             ]),
           ),
         Expanded(
-          child: _courses.isEmpty
+          child: _semesters.isEmpty
               ? Center(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Icon(Icons.calculate, size: 80, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
-                    Text('Add courses to calculate CGPA', style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey)),
+                    Text('Add semesters to calculate CGPA', style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey)),
                     const SizedBox(height: 8),
-                    ElevatedButton(onPressed: _addCourse, child: Text('Add Course', style: GoogleFonts.poppins())),
+                    ElevatedButton(onPressed: _addSemester, child: Text('Add Semester', style: GoogleFonts.poppins())),
                   ]),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: _courses.length,
-                  itemBuilder: (context, i) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(children: [
-                        Row(children: [
-                          Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text('${i + 1}', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              decoration: const InputDecoration(
-                                labelText: 'Course Name',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                isDense: true,
+                  itemCount: _semesters.length,
+                  itemBuilder: (context, semIndex) {
+                    var sem = _semesters[semIndex];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Text(sem['name'], style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            IconButton(icon: const Icon(Icons.add), onPressed: () => _addCourse(semIndex)),
+                            IconButton(icon: const Icon(Icons.calculate), onPressed: () => _calculateSemester(semIndex)),
+                          ]),
+                          if (sem['cgpa'] > 0)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              onChanged: (v) => _courses[i]['name'] = v,
+                              child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                                _result('Semester CGPA', sem['cgpa'].toStringAsFixed(2)),
+                                _result('Credits', sem['credits'].toString()),
+                                _result('Grade', _getGrade(sem['cgpa'])),
+                              ]),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: AppColors.error, size: 20),
-                            onPressed: () => setState(() => _courses.removeAt(i)),
-                          ),
+                          ...sem['courses'].map<Widget>((c) => _courseWidget(semIndex, sem['courses'].indexOf(c))).toList(),
                         ]),
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          Expanded(
-                            flex: 1,
-                            child: TextField(
-                              decoration: const InputDecoration(
-                                labelText: 'Credit',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                isDense: true,
-                              ),
-                              keyboardType: TextInputType.number,
-                              onChanged: (v) => _courses[i]['credit'] = int.tryParse(v) ?? 0,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: DropdownButtonFormField<String>(
-                              value: _courses[i]['grade'].toString(),
-                              isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Grade',
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                isDense: true,
-                              ),
-                              items: _grades.map<DropdownMenuItem<String>>((g) => 
-                                DropdownMenuItem<String>(
-                                  value: g['grade'],
-                                  child: Text('${g['grade']} (${g['point']})', style: GoogleFonts.poppins(fontSize: 12)),
-                                )
-                              ).toList(),
-                              onChanged: (v) => setState(() {
-                                _courses[i]['grade'] = v;
-                                _courses[i]['point'] = double.parse(_grades.firstWhere((g) => g['grade'] == v)['point']!);
-                              }),
-                            ),
-                          ),
-                        ]),
-                      ]),
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
         ),
         Container(
@@ -168,12 +144,12 @@ class _CGPACalculatorScreenState extends State<CGPACalculatorScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _courses.isNotEmpty ? _calculate : null,
-              child: Text('Calculate CGPA', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+              onPressed: _semesters.isNotEmpty ? _calculateOverall : null,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
+              child: Text('Calculate Overall CGPA', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
         ),
@@ -181,9 +157,88 @@ class _CGPACalculatorScreenState extends State<CGPACalculatorScreen> {
     );
   }
 
+  Widget _courseWidget(int semIndex, int courseIndex) {
+    var c = _semesters[semIndex]['courses'][courseIndex];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(children: [
+          Row(children: [
+            Container(
+              width: 25,
+              height: 25,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Center(
+                child: Text('${courseIndex + 1}', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Course Name',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  isDense: true,
+                ),
+                onChanged: (v) => c['name'] = v,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+              onPressed: () => setState(() => _semesters[semIndex]['courses'].removeAt(courseIndex)),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(
+              flex: 1,
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Credit',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  isDense: true,
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) => c['credit'] = int.tryParse(v) ?? 0,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                initialValue: c['grade'].toString(),
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Grade',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  isDense: true,
+                ),
+                items: _grades.map<DropdownMenuItem<String>>((g) => 
+                  DropdownMenuItem<String>(
+                    value: g['grade'],
+                    child: Text('${g['grade']} (${g['point']})', style: GoogleFonts.poppins(fontSize: 11)),
+                  )
+                ).toList(),
+                onChanged: (v) => setState(() {
+                  c['grade'] = v;
+                  c['point'] = double.parse(_grades.firstWhere((g) => g['grade'] == v)['point']!);
+                }),
+              ),
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
   Widget _result(String label, String value) => Column(children: [
-    Text(value, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-    Text(label, style: GoogleFonts.poppins(fontSize: 12, color: Colors.white70)),
+    Text(value, style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+    Text(label, style: GoogleFonts.poppins(fontSize: 10, color: Colors.white70)),
   ]);
 
   String _getGrade(double cgpa) {

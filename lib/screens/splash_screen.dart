@@ -1,14 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/auth_service.dart';
-import '../config/app_colors.dart';
+import 'package:provider/provider.dart';
+
 import '../config/app_constants.dart';
-import 'login_screen.dart';
-import 'student_dashboard.dart';
-import 'teacher_dashboard.dart';
-import 'admin_dashboard.dart';
+import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

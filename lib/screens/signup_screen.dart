@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../config/app_colors.dart';
 import '../config/app_constants.dart';
-import 'student_dashboard.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -57,7 +56,13 @@ class _SignupScreenState extends State<SignupScreen> {
         term: _term,
         phoneNumber: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
       );
-      if (mounted) Navigator.pushReplacementNamed(context, '/student_dashboard');
+      if (mounted) {
+        final message = auth.errorMessage ?? 'Account created! Please wait for admin approval.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: AppColors.info),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     } else if (_role == 'teacher') {
       await auth.signUpTeacher(
         name: _nameCtrl.text.trim(),
@@ -69,13 +74,11 @@ class _SignupScreenState extends State<SignupScreen> {
         phoneNumber: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
       );
       if (mounted) {
+        final message = auth.errorMessage ?? 'Account created! Waiting for admin approval.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(auth.errorMessage ?? 'Account created! Waiting for admin approval.'),
-            backgroundColor: AppColors.info,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.info),
         );
-        Navigator.pop(context);
+        Navigator.pushReplacementNamed(context, '/login');
       }
     } else if (_role == 'admin') {
       ScaffoldMessenger.of(context).showSnackBar(
